@@ -62,17 +62,13 @@ export const AuthProvider = ({ children }) => {
         await api.post('/logout/', { refresh: refreshToken });
       }
     } catch (error) {
-
+      // Ignore logout errors
     } finally {
       localStorage.clear();
       setUser(null);
       setIsAuthenticated(false);
       toast.success('Logged out successfully');
-     }
-  };
-
-  const updateUser = (userData) => {
-    setUser(userData);
+    }
   };
 
   const value = {
@@ -82,7 +78,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    updateUser,
+    updateUser: setUser,
   };
 
   return (
@@ -98,4 +94,4 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within AuthProvider');
   }
   return context;
-};  
+};
