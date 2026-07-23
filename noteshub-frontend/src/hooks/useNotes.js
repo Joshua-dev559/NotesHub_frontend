@@ -13,18 +13,25 @@ export const useNotes = () => {
   }, [isAuthenticated]);
 
   const filteredNotes = useMemo(() => {
-    return Array.isArray(store.notes) ? store.notes.filter((n) => !n.is_archived) : [];
+    return Array.isArray(store.notes)
+      ? store.notes.filter((note) => !note.is_archived)
+      : [];
   }, [store.notes]);
 
   const stats = useMemo(() => {
     const notes = Array.isArray(store.notes) ? store.notes : [];
+
     return {
       total: notes.length,
-      pinned: notes.filter((n) => n.is_pinned && !n.is_archived).length,
-      archived: notes.filter((n) => n.is_archived).length,
-      tags: [...new Set(notes.flatMap((n) => n.tags || []))],
+      pinned: notes.filter((note) => note.is_pinned && !note.is_archived).length,
+      archived: notes.filter((note) => note.is_archived).length,
+      tags: [...new Set(notes.flatMap((note) => note.tags || []))],
     };
   }, [store.notes]);
 
-  return { ...store, filteredNotes, stats };
+  return {
+    ...store,
+    filteredNotes,
+    stats,
+  };
 };

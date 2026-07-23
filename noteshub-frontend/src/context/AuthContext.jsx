@@ -9,6 +9,32 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const logout = async () => {
+    try {
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (refreshToken) await api.post('/logout/', { refresh: refreshToken });
+    } catch {
+      // ignore
+    } finally {
+      localStorage.clear();
+      setUser(null);
+      setIsAuthenticated(false);
+      toast.success('Logged out successfully');
+    }
+  };
+
+  const fetchUser = async () => {
+    try {
+      const response = await api.get('/me/');
+      setUser(response.data);
+      setIsAuthenticated(true);
+    } catch {
+      logout();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (token) {
@@ -16,19 +42,7 @@ export const AuthProvider = ({ children }) => {
     } else {
       setLoading(false);
     }
-  }, []);
-
-  const fetchUser = async () => {
-    try {
-      const response = await api.get('/me/');
-      setUser(response.data);
-      setIsAuthenticated(true);
-    } catch (error) {
-      logout();
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = async (email, password) => {
     try {
@@ -38,7 +52,7 @@ export const AuthProvider = ({ children }) => {
       await fetchUser();
       toast.success('Welcome back!');
       return true;
-    } catch (error) {
+    } catch {
       toast.error('Invalid credentials. Please try again.');
       return false;
     }
@@ -49,40 +63,14 @@ export const AuthProvider = ({ children }) => {
       await api.post('/register/', userData);
       toast.success('Registration successful! Please login.');
       return true;
-    } catch (error) {
+    } catch {
       toast.error('Registration failed. Please check your details.');
       return false;
     }
   };
 
-  const logout = async () => {
-    try {
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (refreshToken) {
-        await api.post('/logout/', { refresh: refreshToken });
-      }
-    } catch (error) {
-      // Ignore logout errors
-    } finally {
-      localStorage.clear();
-      setUser(null);
-      setIsAuthenticated(false);
-      toast.success('Logged out successfully');
-    }
-  };
-
-  const value = {
-    user,
-    loading,
-    isAuthenticated,
-    login,
-    register,
-    logout,
-    updateUser: setUser,
-  };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, loading, isAuthenticated, login, register, logout, updateUser: setUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -90,8 +78,6 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };

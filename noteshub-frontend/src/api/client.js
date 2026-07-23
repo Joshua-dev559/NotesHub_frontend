@@ -5,23 +5,17 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
 
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
   timeout: 10000,
 });
 
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 api.interceptors.response.use(
@@ -35,10 +29,7 @@ api.interceptors.response.use(
 
       if (refreshToken) {
         try {
-          const response = await axios.post(`${API_URL}/token/refresh/`, {
-            refresh: refreshToken,
-          });
-          
+          const response = await axios.post(`${API_URL}/token/refresh/`, { refresh: refreshToken });
           localStorage.setItem('access_token', response.data.access);
           originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
           return api(originalRequest);
@@ -48,14 +39,12 @@ api.interceptors.response.use(
           toast.error('Session expired. Please login again.');
         }
       } else {
-       
-             window.location.href = '/login';
+        window.location.href = '/login';
       }
     }
 
-        const errorMessage = error.response?.data?.detail || error.message || 'An error occurred';
+    const errorMessage = error.response?.data?.detail || error.message || 'An error occurred';
     toast.error(errorMessage);
-    
     return Promise.reject(error);
   }
 );
