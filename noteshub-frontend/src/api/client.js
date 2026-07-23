@@ -42,9 +42,8 @@ api.interceptors.response.use(
           localStorage.setItem('access_token', response.data.access);
           originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
           return api(originalRequest);
-        } catch (refreshError) {
-
-           localStorage.clear();
+        } catch {
+          localStorage.clear();
           window.location.href = '/login';
           toast.error('Session expired. Please login again.');
         }

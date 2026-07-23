@@ -1,50 +1,74 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { useNotes } from '../hooks/useNotes';
+import useNoteStore from '../store/noteStore';
 import NoteForm from '../components/notes/NoteForm';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const NoteEditor = () => {
   const { id } = useParams();
+  const isNew = id === 'new';
   const navigate = useNavigate();
-  const { notes, createNote, updateNote, loading } = useNotes();
+
+  const { notes, loading, saving, fetchNotes, createNote, updateNote } = useNoteStore();
   const [initialData, setInitialData] = useState(null);
-  const [formLoading, setFormLoading] = useState(false);
+  const [fetched, setFetched] = useState(false);
 
   useEffect(() => {
-    if (id && id !== 'new') {
-      const note = notes.find((n) => n.id === parseInt(id));
+    if (isNew) {
+      setFetched(true);
+      return;
+    }
+
+    const load = async () => {
+      let list = notes;
+
+      // If store is empty, fetch first
+      if (!list.length) {
+        try {
+          await fetchNotes();
+          list = useNoteStore.getState().notes;
+        } catch {
+          navigate('/');
+          return;
+        }
+      }
+
+      const note = list.find((n) => n.id === id);
       if (note) {
         setInitialData(note);
+        setFetched(true);
       } else {
-        // Note not found, redirect to dashboard
         navigate('/');
       }
-    }
-  }, [id, notes, navigate]);
+    };
+
+    load();
+  }, [id]);
+
+  const sanitize = (data) => ({
+    title: data.title,
+    content: data.content,
+    color: data.color || '#ffffff',
+    tags: data.tags || [],
+    is_pinned: data.is_pinned ?? false,
+    is_archived: data.is_archived ?? false,
+  });
 
   const handleSubmit = async (data) => {
-    setFormLoading(true);
     try {
-      if (id === 'new') {
-        await createNote(data);
+      if (isNew) {
+        await createNote(sanitize(data));
       } else {
-        await updateNote(parseInt(id), data);
+        await updateNote(id, sanitize(data));
       }
       navigate('/');
-    } catch (error) {
-      console.error('Failed to save note:', error);
-    } finally {
-      setFormLoading(false);
+    } catch {
+      // toast handled in store
     }
   };
 
-  const handleCancel = () => {
-    navigate('/');
-  };
-
-  if (loading) {
+  if (!fetched) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner />
@@ -65,14 +89,14 @@ const NoteEditor = () => {
 
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-bold mb-6">
-            {id === 'new' ? 'Create Note' : 'Edit Note'}
+            {isNew ? 'Create Note' : 'Edit Note'}
           </h2>
 
           <NoteForm
             initialData={initialData}
             onSubmit={handleSubmit}
-            onCancel={handleCancel}
-            loading={formLoading}
+            onCancel={() => navigate('/')}
+            loading={saving}
           />
         </div>
       </div>

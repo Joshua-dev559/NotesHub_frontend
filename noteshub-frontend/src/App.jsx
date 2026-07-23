@@ -34,14 +34,6 @@ function App() {
               }
             />
             <Route
-              path="/note/new"
-              element={
-                <PrivateRoute>
-                  <NoteEditor />
-                </PrivateRoute>
-              }
-            />
-            <Route
               path="/note/:id"
               element={
                 <PrivateRoute>
