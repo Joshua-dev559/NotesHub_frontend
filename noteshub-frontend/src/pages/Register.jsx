@@ -30,7 +30,7 @@ const Register = () => {
     setLoading(false);
     
     if (success) {
-      navigate('/login');
+      navigate('/');
     }
   };
 
