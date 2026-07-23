@@ -41,59 +41,7 @@ const NoteForm = ({ initialData = null, onSubmit, onCancel, loading = false }) =
     }
   }, [initialData]);
 
-  const exec = useCallback((command, value = null) => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    // Ensure editor has focus and a selection exists
-    editor.focus();
-
-    // If editor is empty, insert a paragraph first so execCommand has a block to work with
-    if (!editor.innerHTML.trim()) {
-      document.execCommand('insertHTML', false, '<p>&#8203;</p>');
-    }
-
-    // For list commands, check if execCommand works, otherwise insert manually
-    if (command === 'insertUnorderedList' || command === 'insertOrderedList') {
-      const tag = command === 'insertUnorderedList' ? 'ul' : 'ol';
-      const isActive = document.queryCommandState(command);
-
-      if (isActive) {
-        // Already in a list — toggle off
-        document.execCommand(command, false, null);
-      } else {
-        // Try execCommand first
-        const before = editor.innerHTML;
-        document.execCommand(command, false, null);
-        // If innerHTML didn't change, execCommand failed — insert manually
-        if (editor.innerHTML === before) {
-          const sel = window.getSelection();
-          const range = sel?.getRangeAt(0);
-          if (range) {
-            const list = document.createElement(tag);
-            const li = document.createElement('li');
-            li.innerHTML = '&#8203;';
-            list.appendChild(li);
-            range.deleteContents();
-            range.insertNode(list);
-            // Move cursor inside the li
-            const newRange = document.createRange();
-            newRange.setStart(li, 0);
-            newRange.collapse(true);
-            sel.removeAllRanges();
-            sel.addRange(newRange);
-          }
-        }
-      }
-    } else {
-      document.execCommand(command, false, value);
-    }
-
-    editor.focus();
-    updateActiveFormats();
-  }, []);
-
-  const updateActiveFormats = () => {
+  const updateActiveFormats = useCallback(() => {
     setActiveFormats({
       bold: document.queryCommandState('bold'),
       italic: document.queryCommandState('italic'),
@@ -103,7 +51,47 @@ const NoteForm = ({ initialData = null, onSubmit, onCancel, loading = false }) =
       justifyCenter: document.queryCommandState('justifyCenter'),
       justifyRight: document.queryCommandState('justifyRight'),
     });
-  };
+  }, []);
+
+  const exec = useCallback((command) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+    if (!editor.innerHTML.trim()) {
+      document.execCommand('insertHTML', false, '<p><br></p>');
+    }
+    if (command === 'insertUnorderedList' || command === 'insertOrderedList') {
+      const tag = command === 'insertUnorderedList' ? 'ul' : 'ol';
+      const isActive = document.queryCommandState(command);
+      if (isActive) {
+        document.execCommand(command, false, null);
+      } else {
+        const before = editor.innerHTML;
+        document.execCommand(command, false, null);
+        if (editor.innerHTML === before) {
+          const sel = window.getSelection();
+          const range = sel?.getRangeAt(0);
+          if (range) {
+            const list = document.createElement(tag);
+            const li = document.createElement('li');
+            li.innerHTML = '<br>';
+            list.appendChild(li);
+            range.deleteContents();
+            range.insertNode(list);
+            const newRange = document.createRange();
+            newRange.setStart(li, 0);
+            newRange.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+          }
+        }
+      }
+    } else {
+      document.execCommand(command, false, null);
+    }
+    editor.focus();
+    updateActiveFormats();
+  }, [updateActiveFormats]);
 
   const handleAddTag = (e) => {
     if (e.key === 'Enter' && tagInput.trim()) {

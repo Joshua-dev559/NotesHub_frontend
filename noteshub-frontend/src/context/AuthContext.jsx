@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
 import api from '../api/client';
 import toast from 'react-hot-toast';
 
@@ -8,8 +8,13 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const isMounted = useRef(true);
 
-  const logout = async () => {
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
+
+  const logout = useCallback(async () => {
     try {
       const refreshToken = localStorage.getItem('refresh_token');
       if (refreshToken) await api.post('/logout/', { refresh: refreshToken });
@@ -17,23 +22,27 @@ export const AuthProvider = ({ children }) => {
       // ignore
     } finally {
       localStorage.clear();
-      setUser(null);
-      setIsAuthenticated(false);
+      if (isMounted.current) {
+        setUser(null);
+        setIsAuthenticated(false);
+      }
       toast.success('Logged out successfully');
     }
-  };
+  }, []);
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       const response = await api.get('/me/');
-      setUser(response.data);
-      setIsAuthenticated(true);
+      if (isMounted.current) {
+        setUser(response.data);
+        setIsAuthenticated(true);
+      }
     } catch {
       logout();
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
-  };
+  }, [logout]);
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -42,9 +51,9 @@ export const AuthProvider = ({ children }) => {
     } else {
       setLoading(false);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchUser]);
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     try {
       const response = await api.post('/token/', { email, password });
       localStorage.setItem('access_token', response.data.access);
@@ -56,9 +65,9 @@ export const AuthProvider = ({ children }) => {
       toast.error('Invalid credentials. Please try again.');
       return false;
     }
-  };
+  }, [fetchUser]);
 
-  const register = async (userData) => {
+  const register = useCallback(async (userData) => {
     try {
       await api.post('/register/', userData);
       toast.success('Registration successful! Please login.');
@@ -67,7 +76,7 @@ export const AuthProvider = ({ children }) => {
       toast.error('Registration failed. Please check your details.');
       return false;
     }
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, isAuthenticated, login, register, logout, updateUser: setUser }}>
