@@ -10,7 +10,15 @@ const NoteEditor = () => {
   const isNew = id === 'new';
   const navigate = useNavigate();
 
-  const { notes, loading, saving, fetchNotes, createNote, updateNote } = useNoteStore();
+  // Removed unused "loading"
+  const {
+    notes,
+    saving,
+    fetchNotes,
+    createNote,
+    updateNote,
+  } = useNoteStore();
+
   const [initialData, setInitialData] = useState(null);
   const [fetched, setFetched] = useState(false);
 
@@ -23,7 +31,7 @@ const NoteEditor = () => {
     const load = async () => {
       let list = notes;
 
-      // If store is empty, fetch first
+      // Fetch notes if store is empty
       if (!list.length) {
         try {
           await fetchNotes();
@@ -35,6 +43,7 @@ const NoteEditor = () => {
       }
 
       const note = list.find((n) => n.id === id);
+
       if (note) {
         setInitialData(note);
         setFetched(true);
@@ -44,7 +53,7 @@ const NoteEditor = () => {
     };
 
     load();
-  }, [id]);
+  }, [id, isNew, notes, fetchNotes, navigate]);
 
   const sanitize = (data) => ({
     title: data.title,
@@ -62,9 +71,10 @@ const NoteEditor = () => {
       } else {
         await updateNote(id, sanitize(data));
       }
+
       navigate('/');
     } catch {
-      // toast handled in store
+      // Error toast handled in store
     }
   };
 

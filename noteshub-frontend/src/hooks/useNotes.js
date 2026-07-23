@@ -4,34 +4,59 @@ import useNoteStore from '../store/noteStore';
 
 export const useNotes = () => {
   const { isAuthenticated } = useAuth();
-  const store = useNoteStore();
+
+  // Select only the values needed from the store
+  const notes = useNoteStore((state) => state.notes);
+  const loading = useNoteStore((state) => state.loading);
+  const saving = useNoteStore((state) => state.saving);
+  const error = useNoteStore((state) => state.error);
+
+  const fetchNotes = useNoteStore((state) => state.fetchNotes);
+  const createNote = useNoteStore((state) => state.createNote);
+  const updateNote = useNoteStore((state) => state.updateNote);
+  const deleteNote = useNoteStore((state) => state.deleteNote);
+  const togglePin = useNoteStore((state) => state.togglePin);
+  const toggleArchive = useNoteStore((state) => state.toggleArchive);
 
   useEffect(() => {
     if (isAuthenticated) {
-      store.fetchNotes();
+      fetchNotes();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, fetchNotes]);
 
   const filteredNotes = useMemo(() => {
-    return Array.isArray(store.notes)
-      ? store.notes.filter((note) => !note.is_archived)
+    return Array.isArray(notes)
+      ? notes.filter((note) => !note.is_archived)
       : [];
-  }, [store.notes]);
+  }, [notes]);
 
   const stats = useMemo(() => {
-    const notes = Array.isArray(store.notes) ? store.notes : [];
+    const noteList = Array.isArray(notes) ? notes : [];
 
     return {
-      total: notes.length,
-      pinned: notes.filter((note) => note.is_pinned && !note.is_archived).length,
-      archived: notes.filter((note) => note.is_archived).length,
-      tags: [...new Set(notes.flatMap((note) => note.tags || []))],
+      total: noteList.length,
+      pinned: noteList.filter(
+        (note) => note.is_pinned && !note.is_archived
+      ).length,
+      archived: noteList.filter((note) => note.is_archived).length,
+      tags: [...new Set(noteList.flatMap((note) => note.tags || []))],
     };
-  }, [store.notes]);
+  }, [notes]);
 
   return {
-    ...store,
+    notes,
+    loading,
+    saving,
+    error,
     filteredNotes,
     stats,
+    fetchNotes,
+    createNote,
+    updateNote,
+    deleteNote,
+    togglePin,
+    toggleArchive,
   };
 };
+
+export default useNotes;
