@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import useNoteStore from '../store/noteStore';
@@ -11,17 +11,12 @@ const NoteEditor = () => {
   const navigate = useNavigate();
   const { saving, createNote, updateNote } = useNoteStore();
   const [initialData, setInitialData] = useState(null);
-  const [fetched, setFetched] = useState(false);
-  const didFetch = useRef(false);
+  const [fetched, setFetched] = useState(isNew); // true immediately for new notes
 
   useEffect(() => {
-    if (didFetch.current) return;
-    didFetch.current = true;
+    if (isNew) return; // already set fetched=true via useState initializer
 
-    if (isNew) {
-      setFetched(true);
-      return;
-    }
+    let cancelled = false;
 
     const load = async () => {
       let list = useNoteStore.getState().notes;
@@ -30,10 +25,11 @@ const NoteEditor = () => {
           await useNoteStore.getState().fetchNotes();
           list = useNoteStore.getState().notes;
         } catch {
-          navigate('/');
+          if (!cancelled) navigate('/');
           return;
         }
       }
+      if (cancelled) return;
       const note = list.find((n) => n.id === id);
       if (note) {
         setInitialData(note);
@@ -44,7 +40,8 @@ const NoteEditor = () => {
     };
 
     load();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { cancelled = true; };
+  }, [id, isNew, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sanitize = (data) => ({
     title: data.title,

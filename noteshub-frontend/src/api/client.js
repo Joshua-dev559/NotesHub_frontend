@@ -44,7 +44,9 @@ api.interceptors.response.use(
     }
 
     const errorMessage = error.response?.data?.detail || error.message || 'An error occurred';
-    toast.error(errorMessage);
+    if (error.response?.status !== 401) {
+      toast.error(errorMessage);
+    }
     return Promise.reject(error);
   }
 );

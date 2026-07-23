@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
+import { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import api from '../api/client';
 import toast from 'react-hot-toast';
 
@@ -8,11 +8,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const isMounted = useRef(true);
-
-  useEffect(() => {
-    return () => { isMounted.current = false; };
-  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -22,10 +17,8 @@ export const AuthProvider = ({ children }) => {
       // ignore
     } finally {
       localStorage.clear();
-      if (isMounted.current) {
-        setUser(null);
-        setIsAuthenticated(false);
-      }
+      setUser(null);
+      setIsAuthenticated(false);
       toast.success('Logged out successfully');
     }
   }, []);
@@ -33,16 +26,16 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = useCallback(async () => {
     try {
       const response = await api.get('/me/');
-      if (isMounted.current) {
-        setUser(response.data);
-        setIsAuthenticated(true);
-      }
+      setUser(response.data);
+      setIsAuthenticated(true);
     } catch {
-      logout();
+      localStorage.clear();
+      setUser(null);
+      setIsAuthenticated(false);
     } finally {
-      if (isMounted.current) setLoading(false);
+      setLoading(false);
     }
-  }, [logout]);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -69,8 +62,13 @@ export const AuthProvider = ({ children }) => {
 
   const register = useCallback(async (userData) => {
     try {
-      await api.post('/register/', userData);
-      toast.success('Registration successful! Please login.');
+      const response = await api.post('/register/', userData);
+      localStorage.setItem('access_token', response.data.access);
+      localStorage.setItem('refresh_token', response.data.refresh);
+      setUser(response.data.user);
+      setIsAuthenticated(true);
+      setLoading(false);
+      toast.success('Account created! Welcome to NotesHub.');
       return true;
     } catch {
       toast.error('Registration failed. Please check your details.');
