@@ -2,7 +2,14 @@ name: Frontend CI
 
 on:
   push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
   pull_request:
+    branches:
+      - main
+      - develop
 
 permissions:
   contents: read
